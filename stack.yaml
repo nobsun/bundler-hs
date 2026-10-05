@@ -1,0 +1,7 @@
+snapshot: lts-24.62
+
+packages:
+- .
+
+extra-deps:
+- hindent-6.3.0
