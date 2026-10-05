@@ -1,4 +1,4 @@
-cabal-version: 3.0
+gicabal-version: 3.0
 name:          bundler-hs
 version:       0.1.0.0
 synopsis:
