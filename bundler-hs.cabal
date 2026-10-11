@@ -10,7 +10,8 @@ description:
   the result compiles as one self-contained module (for competitive
   programming judges).
 
-license:       MIT
+license:       CC0-1.0
+license-file:  LICENSE
 author:        toyboot4e
 maintainer:    toyboot4e@gmail.com
 build-type:    Simple
