@@ -14,7 +14,14 @@ Run the Nix flake directly:
 nix run github:toyboot4e/bundler-hs
 ```
 
-Or, clone the repository and run `cabal install`.
+Or, clone the repository and install it with `cabal`:
+
+```sh
+git clone https://github.com/toyboot4e/bundler-hs
+cd bundler-hs
+cabal update
+cabal install exe:bundler-hs # ~`~/.local/bin/bundler-hs`
+```
 
 ## Usage
 
