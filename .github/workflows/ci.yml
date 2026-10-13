@@ -24,3 +24,39 @@ jobs:
 
       - name: Build and test
         run: nix build .#checks.x86_64-linux.package --print-build-logs
+
+  # The nix check above builds with nixpkgs' default GHC only. 9.8.4 is the
+  # judge's compiler.
+  cabal:
+    name: GHC ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc: ["9.8.4"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: haskell-actions/setup@0f8e8c99d88aeb3fbfd523f1ef2c6f762d10d64d # v2.12.1
+        id: setup
+        with:
+          ghc-version: ${{ matrix.ghc }}
+
+      - name: Plan the build
+        run: cabal build all --enable-tests --dry-run
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.setup.outputs.cabal-store }}
+          key: cabal-ghc-${{ matrix.ghc }}-${{ hashFiles('dist-newstyle/cache/plan.json') }}
+          restore-keys: cabal-ghc-${{ matrix.ghc }}-
+
+      - name: Build
+        run: cabal build all --enable-tests
+
+      - name: Test
+        run: cabal test --test-show-details=direct
