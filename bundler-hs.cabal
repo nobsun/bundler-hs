@@ -34,6 +34,7 @@ library
     Bundler.Discovery
     Bundler.Error
     Bundler.Format
+    Bundler.Ghc
     Bundler.Minify
     Bundler.Parse
     Bundler.PreludeNames

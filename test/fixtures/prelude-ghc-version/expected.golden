@@ -1,0 +1,15 @@
+module Main
+  ( main
+  ) where
+
+import qualified Data.List
+
+main :: IO ()
+main = print (total [1, 2, 3])
+
+-- ### Fold
+foldl' :: (b -> a -> b) -> b -> [a] -> b
+foldl' = Data.List.foldl'
+
+total :: [Int] -> Int
+total = Data.List.foldl' (+) 0

@@ -10,11 +10,12 @@ import Bundler.Config
     parseConfigFromArgs,
   )
 import Bundler.Error (BundleError (..), renderBundleError)
+import Bundler.Ghc (TargetGhc (..), builtinGhc, glasgowHaskell, parsePreludeExports)
 import Control.Exception (bracket_)
 import Control.Monad (filterM, when)
 import Data.ByteString.Lazy qualified as LBS
 import Data.List (isInfixOf, isPrefixOf, sort)
-import Data.Maybe (isJust)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as TE
 import GHC.IO.Encoding (char8, getLocaleEncoding, setLocaleEncoding)
@@ -27,9 +28,9 @@ import System.Directory
     removeDirectoryRecursive,
     removeFile,
   )
-import System.Environment (lookupEnv, setEnv)
+import System.Environment (getEnv, lookupEnv, setEnv)
 import System.Exit (ExitCode (..))
-import System.FilePath ((</>))
+import System.FilePath ((<.>), (</>))
 import System.IO (hClose, hPutStr, hSetEncoding, openTempFile, utf8)
 import System.Process (readProcessWithExitCode)
 import Test.Tasty (TestTree, defaultMain, localOption, testGroup)
@@ -39,6 +40,14 @@ import Test.Tasty.Runners (NumThreads (..))
 
 fixturesRoot :: FilePath
 fixturesRoot = "test" </> "fixtures"
+
+-- | A stand-in compiler answering from a recorded Prelude interface, so
+-- that no golden depends on whichever ghc is on PATH.
+fakeGhc :: String -> FilePath
+fakeGhc version = "test" </> "fake-ghc" </> version </> "ghc"
+
+pinnedGhc :: FilePath
+pinnedGhc = fakeGhc "9.10.3"
 
 main :: IO ()
 main = do
@@ -54,7 +63,15 @@ main = do
         ( testGroup
             "all"
             [ testGroup "golden" tests,
-              testGroup "unit" [formatFailureSalvage, utf8UnderNonUtf8Locale]
+              testGroup
+                "unit"
+                [ formatFailureSalvage,
+                  utf8UnderNonUtf8Locale,
+                  builtinPreludeMatchesGhc,
+                  ghcVersionMacro,
+                  missingGhcFallsBack,
+                  unusableExplicitGhcFails
+                ]
             ]
         )
     )
@@ -72,6 +89,7 @@ formatFailureSalvage = testCase "format failure saves the unformatted bundle" $ 
           { cfgInput = fixture </> "Main.hs",
             cfgLibDirs = [],
             cfgDefines = [],
+            cfgGhc = Just pinnedGhc,
             cfgRenameCmd = Nothing,
             cfgFormat = format,
             cfgMinify = noMinify,
@@ -99,6 +117,64 @@ formatFailureSalvage = testCase "format failure saves the unformatted bundle" $ 
       assertBool ("expected exactly one salvaged bundle, found: " <> show saved) False
   removeDirectoryRecursive sandbox
 
+-- | A plain bundling of one fixture under the given compiler setting.
+plainConfig :: FilePath -> Maybe FilePath -> Config
+plainConfig fixture ghc =
+  Config
+    { cfgInput = fixture </> "Main.hs",
+      cfgLibDirs = [fixture </> "lib"],
+      cfgDefines = [],
+      cfgGhc = ghc,
+      cfgRenameCmd = Nothing,
+      cfgFormat = FormatNone,
+      cfgMinify = noMinify,
+      cfgTreeShake = noTreeShake,
+      cfgEmbedPosition = EmbedAfter
+    }
+
+-- | The built-in Prelude names are what a compiler of that era reports, so
+-- bundling without a ghc gives the same names as bundling with one.
+builtinPreludeMatchesGhc :: TestTree
+builtinPreludeMatchesGhc =
+  testCase "built-in Prelude names match a real interface" $ do
+    dump <-
+      readFile
+        ("test" </> "fake-ghc" </> "9.10.3" </> "lib" </> "x86_64-linux-ghc-9.10.3" </> "base-4.20.2.0" </> "Prelude" <.> "hi")
+    assertEqual "names" (tgPrelude builtinGhc) (parsePreludeExports dump)
+
+ghcVersionMacro :: TestTree
+ghcVersionMacro =
+  testCase "__GLASGOW_HASKELL__ follows the compiler version" $ do
+    assertEqual "9.8.4" 908 (glasgowHaskell (TargetGhc [9, 8, 4] mempty))
+    assertEqual "9.10.3" 910 (glasgowHaskell (TargetGhc [9, 10, 3] mempty))
+
+-- | Without --ghc a machine that has no ghc still bundles, on the built-in
+-- assumptions: foldl' counts as a Prelude name and the library's own gets
+-- its suffix.
+missingGhcFallsBack :: TestTree
+missingGhcFallsBack =
+  testCase "no ghc on PATH falls back to the built-in Prelude" $ do
+    path <- getEnv "PATH"
+    result <-
+      bracket_
+        (setEnv "PATH" "")
+        (setEnv "PATH" path)
+        (bundle (plainConfig (fixturesRoot </> "prelude-ghc-version") Nothing))
+    out <- either (assertFailure . renderBundleError) pure result
+    assertBool ("foldl' was not moved out of Prelude's way:\n" <> out) ("foldl'F ::" `isInfixOf` out)
+
+-- | A compiler the user named must answer: silently assuming another one
+-- would defeat the flag.
+unusableExplicitGhcFails :: TestTree
+unusableExplicitGhcFails =
+  testCase "--ghc naming an unusable compiler is an error" $ do
+    let fixture = fixturesRoot </> "prelude-ghc-version"
+    result <- bundle (plainConfig fixture (Just (fixture </> "no-such-ghc")))
+    case result of
+      Left (GhcProbeError {}) -> pure ()
+      Left err -> assertFailure ("unexpected error: " <> renderBundleError err)
+      Right _ -> assertFailure "expected bundling to fail"
+
 -- | Haskell source is UTF-8 whatever the locale says, so the bundler must
 -- not read it through the locale encoding: under @LC_ALL=C@ that either
 -- mangles every non-ASCII character or dies with a decoding error.
@@ -106,17 +182,7 @@ utf8UnderNonUtf8Locale :: TestTree
 utf8UnderNonUtf8Locale =
   testCase "non-ASCII source survives a non-UTF-8 locale" $ do
     let fixture = fixturesRoot </> "utf8-format-cmd"
-        cfg =
-          Config
-            { cfgInput = fixture </> "Main.hs",
-              cfgLibDirs = [fixture </> "lib"],
-              cfgDefines = [],
-              cfgRenameCmd = Nothing,
-              cfgFormat = FormatNone,
-              cfgMinify = noMinify,
-              cfgTreeShake = noTreeShake,
-              cfgEmbedPosition = EmbedAfter
-            }
+        cfg = plainConfig fixture (Just pinnedGhc)
     locale <- getLocaleEncoding
     result <-
       bracket_ (setLocaleEncoding char8) (setLocaleEncoding locale) (bundle cfg)
@@ -133,7 +199,8 @@ utf8UnderNonUtf8Locale =
 -- input/src paths are rebased onto the fixture directory. A fixture with
 -- @expected.err.golden@ asserts the rendered bundling error; otherwise
 -- @expected.golden@ asserts stdout (and, with @HSB_TEST_COMPILE=1@, that
--- the bundle compiles under @ghc -fno-code@).
+-- the bundle compiles under @ghc -fno-code@). Unless the arguments name a
+-- compiler with @--ghc@, the fixture is bundled for 'pinnedGhc'.
 -- A @known-broken@ file exempts the fixture from the compile check and
 -- says why: its golden records output that does /not/ compile, pinning a
 -- limitation of the bundler so that fixing it shows up as a golden diff.
@@ -149,7 +216,8 @@ fixtureTest compileGate name = do
     let rebased =
           cfg
             { cfgInput = dir </> cfgInput cfg,
-              cfgLibDirs = map (dir </>) (cfgLibDirs cfg)
+              cfgLibDirs = map (dir </>) (cfgLibDirs cfg),
+              cfgGhc = Just (fromMaybe pinnedGhc (cfgGhc cfg))
             }
     result <- bundle rebased
     case (errCase, result) of

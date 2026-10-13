@@ -1,0 +1,141 @@
+exports:
+  GHC.Internal.Base.$
+  GHC.Internal.Base.$!
+  GHC.Internal.Base.++
+  GHC.Internal.Base..
+  GHC.Internal.Base.=<<
+  GHC.Internal.Base.asTypeOf
+  GHC.Internal.Base.const
+  GHC.Internal.Base.flip
+  GHC.Internal.Base.id
+  GHC.Internal.Base.map
+  GHC.Internal.Base.otherwise
+  GHC.Internal.Base.until
+  GHC.Internal.Data.Either.either
+  GHC.Internal.Data.Foldable.all
+  GHC.Internal.Data.Foldable.and
+  GHC.Internal.Data.Foldable.any
+  GHC.Internal.Data.Foldable.concat
+  GHC.Internal.Data.Foldable.concatMap
+  GHC.Internal.Data.Foldable.mapM_
+  GHC.Internal.Data.Foldable.notElem
+  GHC.Internal.Data.Foldable.or
+  GHC.Internal.Data.Foldable.sequence_
+  GHC.Internal.Data.Functor.<$>
+  GHC.Internal.Data.Maybe.maybe
+  GHC.Internal.Data.OldList.lines
+  GHC.Internal.Data.OldList.unlines
+  GHC.Internal.Data.OldList.unwords
+  GHC.Internal.Data.OldList.words
+  GHC.Internal.Data.Tuple.curry
+  GHC.Internal.Data.Tuple.fst
+  GHC.Internal.Data.Tuple.snd
+  GHC.Internal.Data.Tuple.uncurry
+  GHC.Internal.Err.error
+  GHC.Internal.Err.errorWithoutStackTrace
+  GHC.Internal.Err.undefined
+  GHC.Internal.IO.Exception.ioError
+  GHC.Internal.IO.Exception.userError
+  GHC.Internal.List.!!
+  GHC.Internal.List.break
+  GHC.Internal.List.cycle
+  GHC.Internal.List.drop
+  GHC.Internal.List.dropWhile
+  GHC.Internal.List.filter
+  GHC.Internal.List.head
+  GHC.Internal.List.init
+  GHC.Internal.List.iterate
+  GHC.Internal.List.last
+  GHC.Internal.List.lookup
+  GHC.Internal.List.repeat
+  GHC.Internal.List.replicate
+  GHC.Internal.List.reverse
+  GHC.Internal.List.scanl
+  GHC.Internal.List.scanl1
+  GHC.Internal.List.scanr
+  GHC.Internal.List.scanr1
+  GHC.Internal.List.span
+  GHC.Internal.List.splitAt
+  GHC.Internal.List.tail
+  GHC.Internal.List.take
+  GHC.Internal.List.takeWhile
+  GHC.Internal.List.unzip
+  GHC.Internal.List.unzip3
+  GHC.Internal.List.zip
+  GHC.Internal.List.zip3
+  GHC.Internal.List.zipWith
+  GHC.Internal.List.zipWith3
+  GHC.Internal.Num.subtract
+  GHC.Internal.Read.lex
+  GHC.Internal.Read.readParen
+  GHC.Internal.Real.^
+  GHC.Internal.Real.^^
+  GHC.Internal.Real.even
+  GHC.Internal.Real.fromIntegral
+  GHC.Internal.Real.gcd
+  GHC.Internal.Real.lcm
+  GHC.Internal.Real.odd
+  GHC.Internal.Real.realToFrac
+  GHC.Internal.Show.showChar
+  GHC.Internal.Show.showParen
+  GHC.Internal.Show.showString
+  GHC.Internal.Show.shows
+  GHC.Internal.System.IO.appendFile
+  GHC.Internal.System.IO.getChar
+  GHC.Internal.System.IO.getContents
+  GHC.Internal.System.IO.getLine
+  GHC.Internal.System.IO.interact
+  GHC.Internal.System.IO.print
+  GHC.Internal.System.IO.putChar
+  GHC.Internal.System.IO.putStr
+  GHC.Internal.System.IO.putStrLn
+  GHC.Internal.System.IO.readFile
+  GHC.Internal.System.IO.readIO
+  GHC.Internal.System.IO.readLn
+  GHC.Internal.System.IO.writeFile
+  GHC.Internal.Text.Read.read
+  GHC.Internal.Text.Read.reads
+  GHC.Classes.&&
+  GHC.Classes.not
+  GHC.Classes.||
+  GHC.Prim.seq
+  GHC.Internal.Base.Applicative{GHC.Internal.Base.*> GHC.Internal.Base.<* GHC.Internal.Base.<*> GHC.Internal.Base.liftA2 GHC.Internal.Base.pure}
+  GHC.Internal.Base.Functor{GHC.Internal.Base.<$ GHC.Internal.Base.fmap}
+  GHC.Internal.Base.Monad{GHC.Internal.Base.>> GHC.Internal.Base.>>= GHC.Internal.Base.return}
+  GHC.Internal.Base.Monoid{GHC.Internal.Base.mappend GHC.Internal.Base.mconcat GHC.Internal.Base.mempty}
+  GHC.Internal.Base.Semigroup{GHC.Internal.Base.<>}
+  GHC.Internal.Control.Monad.Fail.MonadFail{GHC.Internal.Control.Monad.Fail.fail}
+  GHC.Internal.Data.Either.Either{GHC.Internal.Data.Either.Left GHC.Internal.Data.Either.Right}
+  GHC.Internal.Data.Foldable.Foldable{GHC.Internal.Data.Foldable.elem GHC.Internal.Data.Foldable.foldMap GHC.Internal.Data.Foldable.foldl GHC.Internal.Data.Foldable.foldl' GHC.Internal.Data.Foldable.foldl1 GHC.Internal.Data.Foldable.foldr GHC.Internal.Data.Foldable.foldr1 GHC.Internal.Data.Foldable.length GHC.Internal.Data.Foldable.maximum GHC.Internal.Data.Foldable.minimum GHC.Internal.Data.Foldable.null GHC.Internal.Data.Foldable.product GHC.Internal.Data.Foldable.sum}
+  GHC.Internal.Data.Traversable.Traversable{GHC.Internal.Data.Traversable.mapM GHC.Internal.Data.Traversable.sequence GHC.Internal.Data.Traversable.sequenceA GHC.Internal.Data.Traversable.traverse}
+  GHC.Internal.Enum.Bounded{GHC.Internal.Enum.maxBound GHC.Internal.Enum.minBound}
+  GHC.Internal.Enum.Enum{GHC.Internal.Enum.enumFrom GHC.Internal.Enum.enumFromThen GHC.Internal.Enum.enumFromThenTo GHC.Internal.Enum.enumFromTo GHC.Internal.Enum.fromEnum GHC.Internal.Enum.pred GHC.Internal.Enum.succ GHC.Internal.Enum.toEnum}
+  GHC.Internal.Float.Floating{GHC.Internal.Float.** GHC.Internal.Float.acos GHC.Internal.Float.acosh GHC.Internal.Float.asin GHC.Internal.Float.asinh GHC.Internal.Float.atan GHC.Internal.Float.atanh GHC.Internal.Float.cos GHC.Internal.Float.cosh GHC.Internal.Float.exp GHC.Internal.Float.log GHC.Internal.Float.logBase GHC.Internal.Float.pi GHC.Internal.Float.sin GHC.Internal.Float.sinh GHC.Internal.Float.sqrt GHC.Internal.Float.tan GHC.Internal.Float.tanh}
+  GHC.Internal.Float.RealFloat{GHC.Internal.Float.atan2 GHC.Internal.Float.decodeFloat GHC.Internal.Float.encodeFloat GHC.Internal.Float.exponent GHC.Internal.Float.floatDigits GHC.Internal.Float.floatRadix GHC.Internal.Float.floatRange GHC.Internal.Float.isDenormalized GHC.Internal.Float.isIEEE GHC.Internal.Float.isInfinite GHC.Internal.Float.isNaN GHC.Internal.Float.isNegativeZero GHC.Internal.Float.scaleFloat GHC.Internal.Float.significand}
+  GHC.Internal.IO.FilePath
+  GHC.Internal.IO.Exception.IOError
+  GHC.Internal.Num.Num{GHC.Internal.Num.* GHC.Internal.Num.+ GHC.Internal.Num.- GHC.Internal.Num.abs GHC.Internal.Num.fromInteger GHC.Internal.Num.negate GHC.Internal.Num.signum}
+  GHC.Internal.Read.Read{GHC.Internal.Read.readList GHC.Internal.Read.readsPrec}
+  GHC.Internal.Real.Fractional{GHC.Internal.Real./ GHC.Internal.Real.fromRational GHC.Internal.Real.recip}
+  GHC.Internal.Real.Integral{GHC.Internal.Real.div GHC.Internal.Real.divMod GHC.Internal.Real.mod GHC.Internal.Real.quot GHC.Internal.Real.quotRem GHC.Internal.Real.rem GHC.Internal.Real.toInteger}
+  GHC.Internal.Real.Rational
+  GHC.Internal.Real.Real{GHC.Internal.Real.toRational}
+  GHC.Internal.Real.RealFrac{GHC.Internal.Real.ceiling GHC.Internal.Real.floor GHC.Internal.Real.properFraction GHC.Internal.Real.round GHC.Internal.Real.truncate}
+  GHC.Internal.Show.Show{GHC.Internal.Show.show GHC.Internal.Show.showList GHC.Internal.Show.showsPrec}
+  GHC.Internal.Show.ShowS
+  GHC.Internal.Text.ParserCombinators.ReadP.ReadS
+  GHC.Classes.Eq{GHC.Classes./= GHC.Classes.==}
+  GHC.Classes.Ord{GHC.Classes.< GHC.Classes.<= GHC.Classes.> GHC.Classes.>= GHC.Classes.compare GHC.Classes.max GHC.Classes.min}
+  GHC.Types.IO
+  GHC.Types.Ordering{GHC.Types.EQ GHC.Types.GT GHC.Types.LT}
+  GHC.Num.Integer.Integer
+  GHC.Internal.Base.String
+  GHC.Internal.Maybe.Maybe{GHC.Internal.Maybe.Just GHC.Internal.Maybe.Nothing}
+  GHC.Types.Bool{GHC.Types.False GHC.Types.True}
+  GHC.Types.Char
+  GHC.Types.Double
+  GHC.Types.Float
+  GHC.Types.Int
+  GHC.Types.Word
+  GHC.Types.~
+direct module dependencies:

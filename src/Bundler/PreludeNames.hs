@@ -1,4 +1,5 @@
--- | The names the implicit Prelude import brings into unqualified scope.
+-- | The names the implicit Prelude import brings into unqualified scope,
+-- for when no compiler can be asked ('Bundler.Ghc.builtinGhc').
 --
 -- Generated from @ghc -e ':browse Prelude'@ (base 4.20). Operators are left
 -- out on purpose: an operator can never take a suffix, so the bundler cannot

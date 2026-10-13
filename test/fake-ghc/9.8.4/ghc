@@ -1,0 +1,11 @@
+#!/bin/sh
+# Stands in for a real ghc in the tests: answers the three queries the
+# bundler makes. Prelude.hi holds the exports section of a real
+# `ghc --show-iface Prelude.hi`.
+here=$(dirname "$0")
+case "$1" in
+  --numeric-version) cat "$here/version" ;;
+  --print-libdir) echo "$here/lib" ;;
+  --show-iface) cat "$2" ;;
+  *) exit 1 ;;
+esac

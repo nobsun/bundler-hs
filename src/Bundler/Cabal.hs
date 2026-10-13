@@ -32,7 +32,7 @@ import Distribution.Types.GenericPackageDescription
 import Distribution.Types.Library (libBuildInfo)
 import Distribution.Types.PackageDescription (package)
 import Distribution.Types.TestSuite (testBuildInfo)
-import Distribution.Version (Version, mkVersion, withinRange)
+import Distribution.Version (Version, withinRange)
 import System.Directory (canonicalizePath, doesFileExist, listDirectory)
 import System.FilePath (takeDirectory, takeExtension, (<.>), (</>))
 
@@ -51,8 +51,7 @@ data ProjectDefaults = ProjectDefaults
     -- | CPP macros from @cpp-options: -DNAME[=VALUE]@, resolved the way
     -- cabal would resolve them for a default build: @if flag(x)@ takes the
     -- flag's declared default, and @os@\/@arch@\/@impl(ghc)@ are decided
-    -- against this host and the GHC version whose @__GLASGOW_HASKELL__@ we
-    -- claim. A condition that cannot be decided contributes both branches,
+    -- against this host and the GHC the bundle is built for. A condition that cannot be decided contributes both branches,
     -- like the language defaults.
     pdDefines :: [(String, String)]
   }
@@ -104,13 +103,13 @@ findProjectFlags start = canonicalizePath start >>= go
 -- | Walk upward from @start@ (a directory) to the first directory containing
 -- a @.cabal@ file. No project at all is fine (empty defaults); more than one
 -- @.cabal@ in the same directory is an error.
-findProjectDefaults :: ProjectFlags -> FilePath -> IO (Either BundleError ProjectDefaults)
-findProjectDefaults projFlags start = canonicalizePath start >>= go
+findProjectDefaults :: Version -> ProjectFlags -> FilePath -> IO (Either BundleError ProjectDefaults)
+findProjectDefaults ghc projFlags start = canonicalizePath start >>= go
   where
     go dir = do
       cabals <- filter ((== ".cabal") . takeExtension) <$> listDirectory dir
       case cabals of
-        [name] -> readDefaults projFlags dir (dir </> name)
+        [name] -> readDefaults ghc projFlags dir (dir </> name)
         [] ->
           let parent = takeDirectory dir
            in if parent == dir
@@ -118,8 +117,8 @@ findProjectDefaults projFlags start = canonicalizePath start >>= go
                 else go parent
         several -> pure (Left (AmbiguousCabal dir several))
 
-readDefaults :: ProjectFlags -> FilePath -> FilePath -> IO (Either BundleError ProjectDefaults)
-readDefaults projFlags root path = do
+readDefaults :: Version -> ProjectFlags -> FilePath -> FilePath -> IO (Either BundleError ProjectDefaults)
+readDefaults ghc projFlags root path = do
   contents <- BS.readFile path
   pure $ case parseGenericPackageDescriptionMaybe contents of
     Nothing -> Left (CabalError path "not a valid package description")
@@ -129,7 +128,7 @@ readDefaults projFlags root path = do
           { pdRoot = root,
             pdPragmas = map mkPragma (nubOrd (languages <> extensions)),
             pdDefines =
-              nubOrd (concatMap (mapMaybe parseDefine . cppOptions) (resolvedBuildInfos imposed gpd))
+              nubOrd (concatMap (mapMaybe parseDefine . cppOptions) (resolvedBuildInfos ghc imposed gpd))
           }
       where
         infos = allBuildInfos gpd
@@ -263,8 +262,8 @@ allBuildInfos gpd =
 -- the conditionals are actually evaluated rather than unioned, so a
 -- @cpp-options@ under @if flag(debug)@ is included exactly when that flag
 -- defaults to on.
-resolvedBuildInfos :: Map FlagName Bool -> GenericPackageDescription -> [BuildInfo]
-resolvedBuildInfos imposed gpd =
+resolvedBuildInfos :: Version -> Map FlagName Bool -> GenericPackageDescription -> [BuildInfo]
+resolvedBuildInfos ghc imposed gpd =
   concat
     [ map libBuildInfo (resolve (maybeToList (condLibrary gpd))),
       map libBuildInfo (resolve (map snd (condSubLibraries gpd))),
@@ -273,7 +272,7 @@ resolvedBuildInfos imposed gpd =
       map benchmarkBuildInfo (resolve (map snd (condBenchmarks gpd)))
     ]
   where
-    resolve = concatMap (resolveCondTree flags)
+    resolve = concatMap (resolveCondTree ghc flags)
     -- A project file's assignment beats the package's declared default.
     flags = Map.union imposed declared
     declared = Map.fromList [(flagName f, flagDefault f) | f <- genPackageFlags gpd]
@@ -281,18 +280,18 @@ resolvedBuildInfos imposed gpd =
 -- | Flatten a condition tree, following the branch each condition selects.
 -- An undecidable condition (an unknown compiler, say) contributes both
 -- branches, so nothing is silently lost.
-resolveCondTree :: Map FlagName Bool -> CondTree ConfVar c a -> [a]
-resolveCondTree flags (CondNode a _ branches) = a : concatMap pick branches
+resolveCondTree :: Version -> Map FlagName Bool -> CondTree ConfVar c a -> [a]
+resolveCondTree ghc flags (CondNode a _ branches) = a : concatMap pick branches
   where
-    pick (CondBranch cond ifTrue mIfFalse) = case evalCondition flags cond of
-      Just True -> resolveCondTree flags ifTrue
+    pick (CondBranch cond ifTrue mIfFalse) = case evalCondition ghc flags cond of
+      Just True -> resolveCondTree ghc flags ifTrue
       Just False -> orNothing mIfFalse
-      Nothing -> resolveCondTree flags ifTrue <> orNothing mIfFalse
-    orNothing = maybe [] (resolveCondTree flags)
+      Nothing -> resolveCondTree ghc flags ifTrue <> orNothing mIfFalse
+    orNothing = maybe [] (resolveCondTree ghc flags)
 
 -- | 'Nothing' when the condition depends on something we cannot pin down.
-evalCondition :: Map FlagName Bool -> Condition ConfVar -> Maybe Bool
-evalCondition flags = go
+evalCondition :: Version -> Map FlagName Bool -> Condition ConfVar -> Maybe Bool
+evalCondition ghc flags = go
   where
     go c = case c of
       Lit b -> Just b
@@ -313,14 +312,8 @@ evalCondition flags = go
       OS os -> Just (os == buildOS)
       Arch arch -> Just (arch == buildArch)
       PackageFlag f -> Map.lookup f flags
-      -- Match the compiler version the CPP evaluation claims to be.
-      Impl GHC range -> Just (withinRange assumedGhcVersion range)
+      Impl GHC range -> Just (withinRange ghc range)
       Impl _ _ -> Nothing
-
--- | The GHC version implied by the @__GLASGOW_HASKELL__@ that
--- "Bundler.Parse" defines when evaluating CPP.
-assumedGhcVersion :: Version
-assumedGhcVersion = mkVersion [9, 12]
 
 flattenCondTree :: CondTree v c a -> [a]
 flattenCondTree (CondNode a _ branches) = a : concatMap flattenBranch branches

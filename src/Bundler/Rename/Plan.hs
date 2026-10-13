@@ -7,7 +7,6 @@ where
 import Bundler.Discovery
 import Bundler.Error
 import Bundler.Parse
-import Bundler.PreludeNames (preludeNames)
 import Bundler.RenameCmd
 import Bundler.Symbols
 import Control.Monad.Trans.Except (ExceptT (..), runExceptT)
@@ -51,6 +50,9 @@ mkRenamePlan ::
   ParsedFile ->
   -- | The user file's own symbols (unrenamed, but they occupy names).
   ModuleSymbols ->
+  -- | Names the implicit Prelude import provides
+  -- ('Bundler.PreludeNames.preludeNames').
+  Set OccKey ->
   -- | Names the bundle takes from external imports
   -- ('Bundler.Shake.wnExternal').
   Set OccKey ->
@@ -59,8 +61,8 @@ mkRenamePlan ::
   Set ModuleName ->
   [(LocalModule, ModuleSymbols)] ->
   IO (Either BundleError RenamePlan)
-mkRenamePlan mrenamer userFile userSyms external qualifiedUses locals = runExceptT $ do
-  perModule <- traverse planFor (defaultNames userFile userSyms external qualifiedUses locals)
+mkRenamePlan mrenamer userFile userSyms prelude external qualifiedUses locals = runExceptT $ do
+  perModule <- traverse planFor (defaultNames userFile userSyms prelude external qualifiedUses locals)
   let plan = RenamePlan (Map.fromList perModule)
   ExceptT (pure (validatePlan userSyms perModule))
   pure plan
@@ -109,10 +111,11 @@ defaultNames ::
   ParsedFile ->
   ModuleSymbols ->
   Set OccKey ->
+  Set OccKey ->
   Set ModuleName ->
   [(LocalModule, ModuleSymbols)] ->
   [(LocalModule, ModuleSymbols, Map OccKey String)]
-defaultNames userFile userSyms external qualifiedUses locals = go claimed0 locals
+defaultNames userFile userSyms prelude external qualifiedUses locals = go claimed0 locals
   where
     go _ [] = []
     go claimed ((lm, syms) : rest) =
@@ -145,7 +148,7 @@ defaultNames userFile userSyms external qualifiedUses locals = go claimed0 local
     -- the bundle writes that only an external import can be providing.
     occupied =
       Map.keysSet (msAll userSyms)
-        <> preludeNames
+        <> prelude
         <> external
         <> externalImportNames localNames userFile
 

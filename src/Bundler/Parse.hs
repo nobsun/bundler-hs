@@ -258,13 +258,12 @@ anchorDirectives modl directives
 
 -- | cpphs setup for library code: no #line markers in the output (they
 -- would confuse the renamed bundle), the caller's macro definitions (from
--- @-D@ and from cabal @cpp-options@), and a __GLASGOW_HASKELL__ matching
--- the grammar ghc-lib-parser implements. Earlier definitions win, so the
--- caller can override the compiler version too.
+-- @-D@ and from cabal @cpp-options@, plus the target compiler's
+-- __GLASGOW_HASKELL__). Earlier definitions win.
 cpphsOptions :: [(String, String)] -> CpphsOptions
 cpphsOptions userDefines =
   defaultCpphsOptions
-    { defines = dedupeOnKey (userDefines <> [("__GLASGOW_HASKELL__", "912")]),
+    { defines = dedupeOnKey userDefines,
       boolopts = defaultBoolOptions {locations = False}
     }
   where

@@ -28,6 +28,9 @@ data Config = Config
     -- library modules (@-D NAME[=VALUE]@, repeatable). These take
     -- precedence over a project's @cpp-options@.
     cfgDefines :: [(String, String)],
+    -- | The compiler the bundle is built for (@--ghc PATH@), asked for its
+    -- version and its Prelude. 'Nothing' means the @ghc@ on @PATH@.
+    cfgGhc :: Maybe FilePath,
     -- | Optional external command implementing the rename protocol
     -- (@--rename-cmd CMD@).
     cfgRenameCmd :: Maybe String,
@@ -125,6 +128,13 @@ configParser =
               <> long "define"
               <> metavar "NAME[=VALUE]"
               <> help "Define a CPP macro for the library modules' # directives (repeatable)"
+          )
+      )
+    <*> optional
+      ( strOption
+          ( long "ghc"
+              <> metavar "PATH"
+              <> help "GHC the bundle is built for: its version and Prelude are queried (default: ghc on PATH)"
           )
       )
     <*> optional

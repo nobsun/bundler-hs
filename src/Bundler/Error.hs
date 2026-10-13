@@ -44,6 +44,9 @@ data BundleError
   | -- | The @--format-cmd@ child failed or produced output that no longer
     -- parses.
     FormatCmdError String String
+  | -- | The compiler named by @--ghc@ could not be asked for its version
+    -- and Prelude.
+    GhcProbeError FilePath String
   deriving (Show)
 
 renderBundleError :: BundleError -> String
@@ -104,3 +107,5 @@ renderBundleError err = case err of
     "error: rename command failed (" <> ctx <> "): " <> why
   FormatCmdError cmd why ->
     "error: format command failed (" <> cmd <> "): " <> why
+  GhcProbeError exe why ->
+    "error: could not query the compiler (" <> exe <> "): " <> why

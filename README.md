@@ -158,6 +158,18 @@ debugD = False
 
 The support of `CPP` is very limited, and the above is the only expected use case.
 
+### Target compiler
+
+The bundle is built by the judge's GHC, and its version decides two things. One is `__GLASGOW_HASKELL__`, together with `impl(ghc)` conditions in your cabal files. The other is the set of names `Prelude` exports, which your library names must stay clear of. For example, `foldl'` is in `Prelude` since GHC 9.10 only.
+
+`bundler-hs` asks the `ghc` on your `PATH` for both. Use `--ghc` when the judge's compiler is a different one:
+
+```sh
+bundler-hs Main.hs --lib path/to/your/library --ghc ghc-9.8.4 > submission.hs
+```
+
+Without any `ghc` it assumes GHC 9.12 and says so on stderr.
+
 ### Tree shaking
 
 You can use the tree-shaking options to drop unused code from your bundled output:

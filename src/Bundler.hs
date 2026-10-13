@@ -8,6 +8,7 @@ import Bundler.Config
 import Bundler.Discovery
 import Bundler.Error
 import Bundler.Format
+import Bundler.Ghc
 import Bundler.Minify
 import Bundler.Parse
 import Bundler.ReExport
@@ -32,6 +33,7 @@ import Data.Maybe (fromMaybe)
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.Text.Encoding qualified as TE
+import Distribution.Version (mkVersion)
 import GHC.Driver.Session (DynFlags)
 import GHC.Hs (hsmodDecls, hsmodImports, ideclName)
 import GHC.Hs qualified
@@ -51,20 +53,22 @@ import System.Process.Typed (byteStringInput, readProcess, setStdin, shell)
 -- order, and concatenate them (no renaming yet); local imports are dropped,
 -- everything else is deduplicated verbatim.
 bundle :: Config -> IO (Either BundleError String)
-bundle cfg = runExceptT $ do
+bundle cfg = runExceptT (ExceptT (resolveTargetGhc (cfgGhc cfg)) >>= bundleFor cfg)
+
+bundleFor :: Config -> TargetGhc -> ExceptT BundleError IO String
+bundleFor cfg target = do
   -- Flag assignments from the build plan (cabal.project and the freeze and
   -- local files layered on it) govern every package, the user's and the
   -- libraries' alike, so they are read once from the input's project.
   projFlags <- liftIO (findProjectFlags (takeDirectory (cfgInput cfg)))
-  userDefaults <- ExceptT (findProjectDefaults projFlags (takeDirectory (cfgInput cfg)))
+  userDefaults <- ExceptT (findProjectDefaults ghcVersion projFlags (takeDirectory (cfgInput cfg)))
   userFlags <- ExceptT (applyPragmaLines baseDynFlags (pdPragmas userDefaults))
   src <- liftIO (readUtf8File (cfgInput cfg))
   -- The bundle is one file compiled inside the user's project, so the macros
   -- GHC will have there are the ones the library's own directives must be
   -- evaluated under. A library project's cpp-options only fill in macros the
   -- user's project says nothing about, and -D overrides both.
-  let cliDefines = cfgDefines cfg
-      compileDefines = cliDefines <> pdDefines userDefaults
+  let compileDefines = cliDefines <> pdDefines userDefaults
   userFile <- ExceptT (parseUserFile compileDefines userFlags (cfgInput cfg) src)
   libDirs <- traverse (dirDefaults projFlags) (cfgLibDirs cfg)
   locals <-
@@ -95,6 +99,7 @@ bundle cfg = runExceptT $ do
           mrenamer
           userFile
           (shakenSyms (lsUser live) userSyms)
+          (tgPrelude target)
           (wnExternal written)
           (wnQualified written)
           [(lm, shakenSyms (liveLocal live (lmName lm)) syms) | (lm, syms) <- withSyms]
@@ -218,9 +223,13 @@ bundle cfg = runExceptT $ do
       liftIO (hPutStrLn stderr ("note: the unformatted bundle was saved to " <> path))
       throwE err
   where
+    ghcVersion = mkVersion (tgVersion target)
+    -- The compiler's own version macro, which a -D of it still overrides.
+    cliDefines = cfgDefines cfg <> [("__GLASGOW_HASKELL__", show (glasgowHaskell target))]
+
     -- Formatters are arbitrary; make sure the result is still Haskell.
     reparseAs cmd formatted = do
-      reparsed <- liftIO (parseHaskellFile (cfgDefines cfg) baseDynFlags "<formatted output>" formatted)
+      reparsed <- liftIO (parseHaskellFile cliDefines baseDynFlags "<formatted output>" formatted)
       case reparsed of
         Left err ->
           ExceptT . pure . Left $
@@ -229,7 +238,7 @@ bundle cfg = runExceptT $ do
 
     dirDefaults :: ProjectFlags -> FilePath -> ExceptT BundleError IO (FilePath, DynFlags, ProjectDefaults)
     dirDefaults projFlags dir = do
-      defs <- ExceptT (findProjectDefaults projFlags dir)
+      defs <- ExceptT (findProjectDefaults ghcVersion projFlags dir)
       flags <- ExceptT (applyPragmaLines baseDynFlags (pdPragmas defs))
       pure (dir, flags, defs)
 
