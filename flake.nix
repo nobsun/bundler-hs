@@ -32,6 +32,7 @@
                 ./test
                 ./bundler-hs.cabal
                 ./cabal.project
+                ./LICENSE
               ];
             };
             pkg = pkgs.haskellPackages.callCabal2nix "bundler-hs" src { };
