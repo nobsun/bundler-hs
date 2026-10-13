@@ -12,6 +12,7 @@ import Data.ByteString qualified as BS
 import Data.Char (isAlphaNum, isSpace, toLower)
 import Data.Containers.ListUtils (nubOrd)
 import Data.List (isPrefixOf)
+import Data.List qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Maybe (mapMaybe, maybeToList)
@@ -85,7 +86,7 @@ findProjectFlags start = canonicalizePath start >>= go
             traverse
               readIfPresent
               [projectFile, projectFile <.> "freeze", projectFile <.> "local"]
-          pure (foldl' layer Map.empty (map parseProjectFlags (concat texts)))
+          pure (List.foldl' layer Map.empty (map parseProjectFlags (concat texts)))
         else do
           cabals <- filter ((== ".cabal") . takeExtension) <$> listDirectory dir
           let parent = takeDirectory dir

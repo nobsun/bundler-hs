@@ -12,6 +12,7 @@ import Bundler.Utf8 (readUtf8File)
 import Control.Monad (filterM, foldM)
 import Data.Graph (SCC (..), stronglyConnComp)
 import Data.List (sort)
+import Data.List qualified as List
 import Data.Map.Strict (Map)
 import Data.Map.Strict qualified as Map
 import Data.Set qualified as Set
@@ -114,7 +115,7 @@ discoverLocalModules extraDefines libDirs userFile = do
 topoSort :: Map ModuleName LocalModule -> Either BundleError [LocalModule]
 topoSort seen = case [lms | CyclicSCC lms <- sccs] of
   lms : _ -> Left (ImportCycle (map (moduleNameString . lmName) lms))
-  [] -> Right (reverse (snd (foldl' emit (Set.empty, []) (Map.keys seen))))
+  [] -> Right (reverse (snd (List.foldl' emit (Set.empty, []) (Map.keys seen))))
   where
     sccs =
       stronglyConnComp
@@ -129,5 +130,5 @@ topoSort seen = case [lms | CyclicSCC lms <- sccs] of
           -- unreachable, and dropping it is still the right answer.
           Nothing -> (done, acc)
           Just lm ->
-            let (done', acc') = foldl' emit (Set.insert m done, acc) (sort (lmDeps lm))
+            let (done', acc') = List.foldl' emit (Set.insert m done, acc) (sort (lmDeps lm))
              in (done', lm : acc')
